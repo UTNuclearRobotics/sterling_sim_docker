@@ -1,0 +1,29 @@
+# Source this file to get access to the functions below
+sterling_build() {
+    echo "Building Docker container..."
+    docker compose -f docker-compose.yaml build
+}
+
+sterling_start() {
+    echo "Starting Docker container..."
+
+    # Add xhost permissions for docker to use display
+    xhost +si:localuser:root
+    echo "added docker xhost permissions"
+    export UID_GID=$(id -u):$(id -g)
+    export UNAME=$(whoami)
+    echo "gathering host user info... $UNAME $UID_GID"
+
+    docker compose -f docker-compose.yaml up -d
+}
+
+sterling_stop() {
+    echo "Stopping Docker container..."
+    docker compose -f docker-compose.yaml down
+}
+
+CONTAINER_NAME="sterling_gazebo_c"
+sterling_shell() {
+    echo "Opening a shell for ${CONTAINER_NAME}..."
+    docker exec -ti ${CONTAINER_NAME} bash -l
+}
