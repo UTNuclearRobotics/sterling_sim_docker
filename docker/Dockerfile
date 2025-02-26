@@ -118,7 +118,7 @@ COPY cyclonedds.xml /root/cyclonedds.xml
 COPY docker/entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 
-WORKDIR /root/workspace/
+WORKDIR /root/ros2_ws/
 
 # run this script on startup
 ENTRYPOINT /usr/bin/entrypoint.sh

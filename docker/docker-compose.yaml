@@ -28,7 +28,7 @@ services:
       - apparmor:unconfined
     volumes:
       # mount host directories to the container for persistent storage
-      - ./workspace:/root/workspace
+      - ../src:/root/ros2_ws/src
       # mount the X11 socket to enable graphics display
       - /tmp/.X11-unix:/tmp/.X11-unix
       # for non-nvidia users

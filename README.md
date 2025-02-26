@@ -29,4 +29,5 @@ run_gazebo_low
 run_nav2
 ros2 launch sterling_gazebo sidewalks.launch.py high_res:=True
 ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True
+ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True params_file:=nav2_slam_params.yaml
 ```
