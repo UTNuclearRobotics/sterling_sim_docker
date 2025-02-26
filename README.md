@@ -24,6 +24,9 @@ record_bag_sim.sh
 
 # Running Nav
 ```
+run_gazebo_high
+run_gazebo_low
+run_nav2
 ros2 launch sterling_gazebo sidewalks.launch.py high_res:=True
 ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True
 ```
