@@ -19,6 +19,10 @@ services:
       - __GLX_VENDOR_LIBRARY_NAME=nvidia
       # disable qt-X11 memory sharing for RViz
       - QT_X11_NO_MITSHM=1
+      # ROS2 multicast
+      - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - CYCLONEDDS_URI=/root/cyclonedds.xml
     security_opt:
     # this is set bc of errors with RViz being denied dbus comm w/ host
       - apparmor:unconfined

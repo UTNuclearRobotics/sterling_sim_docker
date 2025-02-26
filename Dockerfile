@@ -53,6 +53,7 @@ RUN apt update && apt install -y \
 RUN apt update && apt install -y git openssh-client
 COPY id_rsa /root/.ssh/id_rsa
 RUN chmod 600 /root/.ssh/id_rsa
+
 # Add GitHub's SSH host key to known_hosts
 RUN mkdir -p /root/.ssh && \
     touch /root/.ssh/known_hosts && \
@@ -94,6 +95,10 @@ RUN rosdep install --from-paths src --ignore-src -r -y
 # TODO: the --continue-on-error should not be needed.
 RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --continue-on-error
 
+RUN apt update && apt install -y \
+    ros-${ROS_DISTRO}-cyclonedds \
+    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
+
 # setup .bashrc
 SHELL ["/bin/bash", "-l", "-c"]
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
@@ -102,8 +107,11 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
     && echo "source /root/dependency_ws/install/setup.bash" >> ~/.profile \
     && source ~/.bashrc
 
+# copy the cyclonedds config file
+COPY cyclonedds.xml /root/cyclonedds.xml
+
 # copy the entrypoint into the image
-COPY ./entrypoint.sh /usr/bin/entrypoint.sh
+COPY entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 
 WORKDIR /root/workspace/
