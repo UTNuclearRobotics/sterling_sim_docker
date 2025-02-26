@@ -111,7 +111,7 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
 COPY cyclonedds.xml /root/cyclonedds.xml
 
 # copy the entrypoint into the image
-COPY entrypoint.sh /usr/bin/entrypoint.sh
+COPY docker/entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 
 WORKDIR /root/workspace/

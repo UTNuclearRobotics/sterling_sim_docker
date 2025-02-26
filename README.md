@@ -19,7 +19,7 @@ sterling_shell
 
 # Recording Data
 ```
-./root/workspace/record_bag_sim.sh
+record_bag_sim.sh
 ```
 
 # Running Nav
