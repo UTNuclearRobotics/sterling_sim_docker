@@ -188,9 +188,9 @@ local_costmap:
       height: 6
       resolution: 0.05
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
-      plugins: ["voxel_layer", "inflation_layer", "sterling_layer"]
-      sterling_layer:
-        plugin: "nav2_sterling_costmap_plugin_py/SterlingLayer"
+      plugins: ["voxel_layer", "inflation_layer", "gradient_layer"]
+      gradient_layer:
+        plugin: "nav2_gradient_costmap_plugin::GradientLayer"
         enabled: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
