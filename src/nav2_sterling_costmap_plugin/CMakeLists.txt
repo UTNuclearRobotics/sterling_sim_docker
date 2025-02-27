@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-project(nav2_gradient_costmap_plugin)
+cmake_minimum_required(VERSION 3.8)
+project(nav2_sterling_costmap_plugin)
 
 set(lib_name ${PROJECT_NAME}_core)
 
@@ -34,7 +34,7 @@ set(dep_pkgs
 # === Build ===
 
 add_library(${lib_name} SHARED
-            src/gradient_layer.cpp)
+            src/sterling_layer.cpp)
 include_directories(include)
 
 # === Installation ===
@@ -44,9 +44,9 @@ install(TARGETS ${lib_name}
 
 # === Ament work ===
 
-# pluginlib_export_plugin_description_file() installs gradient_layer.xml
+# pluginlib_export_plugin_description_file() installs sterling_layer.xml
 # file into "share" directory and sets ament indexes for it.
 # This allows the plugin to be discovered as a plugin of required type.
-pluginlib_export_plugin_description_file(nav2_costmap_2d gradient_layer.xml)
+pluginlib_export_plugin_description_file(nav2_costmap_2d sterling_layer.xml)
 ament_target_dependencies(${lib_name} ${dep_pkgs})
 ament_package()
