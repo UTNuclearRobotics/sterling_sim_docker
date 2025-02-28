@@ -41,6 +41,9 @@ class DeploySterlingSim(Node):
             DEPLOY_NODE["terrain_representation_model"], DEPLOY_NODE["kmeans_model"], DEPLOY_NODE["terrain_preferences"]
         ).BEV_to_costmap
 
+        self.LocalCostmapHelper = None
+
+        # Buffers to store and fetch latest message
         self.camera_msg = None
         self.odometry_msg = None
         self.occupany_grid_msg = None
@@ -52,6 +55,8 @@ class DeploySterlingSim(Node):
         self.odometry_msg = msg
 
     def costmap_callback(self, msg):
+        if self.LocalCostmapHelper is None:
+            self.LocalCostmapHelper = LocalCostmapHelper(msg.info.resolution, msg.info.width, msg.info.height)
         self.occupany_grid_msg = msg
 
     def update_costmap(self):
@@ -59,30 +64,91 @@ class DeploySterlingSim(Node):
             return
 
         # Get BEV image
-        image_data = np.frombuffer(self.camera_msg.data, dtype=np.uint8).reshape(self.camera_msg.height, self.camera_msg.width, -1)
+        image_data = np.frombuffer(self.camera_msg.data, dtype=np.uint8).reshape(
+            self.camera_msg.height, self.camera_msg.width, -1
+        )
         bev_image = get_BEV_image(image_data, self.H_INV, (128, 128), (7, 12))
 
         # Get terrain preferred costmap
-        terrain_preferred_costmap = self.get_terrain_preferred_costmap(bev_image, 128)
-        self.get_logger().info(f"Costmap:\n{terrain_preferred_costmap}")
-        
-        msg = self.occupany_grid_msg
-        width = msg.info.width
-        height = msg.info.height
-        resolution = msg.info.resolution
+        terrain_costmap = self.get_terrain_preferred_costmap(bev_image, 128)
+        self.get_logger().info(f"Costmap:\n{terrain_costmap}")
 
-        # Create an empty 2d numpy array
-        data_2d = np.zeros((width, height), dtype=int)
-        
-        
+        # Set costs in the region
+        tile_width = 0.23  # 128 pixel is meters in the real world
+        base_link_offset = 1.4
+        data_2d = self.LocalCostmapHelper.set_costs_in_region(0, -base_link_offset, tile_width, terrain_costmap)
 
         # Rotate the costmap by the yaw angle
-        yaw_angle = DeploySterlingSim.quarternion_to_euler(self.odometry_msg.pose.pose.orientation)
+        yaw_angle = LocalCostmapHelper.quarternion_to_euler(self.odometry_msg.pose.pose.orientation)
         # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
-        msg.data = self.rotate_costmap(data_2d, -np.degrees(yaw_angle) + 90)
+        rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, -np.degrees(yaw_angle) - 90)
+        
+        msg = self.occupany_grid_msg
+        msg.data = [int(val) for val in np.array(rotated_data).flatten()]
 
         # Publish message
         self.sterling_costmap_publisher.publish(msg)
+
+
+class LocalCostmapHelper:
+    def __init__(self, resolution=0.05, width_cells=120, height_cells=120):
+        # Local costmap dimensions and resolution
+        self.resolution = resolution  # 5 cm per cell
+        self.width_cells = width_cells
+        self.height_cells = height_cells
+        self.width_m = width_cells * resolution  # 6 meters
+        self.height_m = height_cells * resolution  # 6 meters
+
+        # Center of the local costmap in cell coordinates
+        self.center_x = self.width_cells // 2  # 60 cells
+        self.center_y = self.height_cells // 2  # 60 cells
+
+    def set_costs_in_region(self, x_m, y_m, cell_size_m, terrain_costmap):
+        upscale_factor = int(cell_size_m / self.resolution)
+
+        # Convert meters to cells
+        offset_x_cells = int(x_m / self.resolution)
+        offset_y_cells = int(y_m / self.resolution)
+        width_cells = upscale_factor * len(terrain_costmap[0])
+        height_cells = upscale_factor * len(terrain_costmap)
+
+        # Calculate the bottom-left corner of the region in cell coordinates
+        # x = self.center_x + offset_x_cells
+        x = self.center_x + offset_x_cells - width_cells // 2
+        # y = self.center_y + offset_y_cells
+        y = self.center_y + offset_y_cells - height_cells
+
+        # Scale the data array to account for the resolution
+        return self.upsample_2d_array(terrain_costmap, upscale_factor, x, y)
+
+    def upsample_2d_array(self, arr, factor, x_start, y_start):
+        """
+        Upsample a 2D array by a factor.
+
+        Args:
+            arr (list of list): The original 2D array.
+
+        Returns:
+            list of list: The upsampled 2D array.
+        """
+        canvas = np.zeros((self.width_cells, self.height_cells), dtype=int)
+
+        # Get the dimensions of the original array
+        height = len(arr)
+        width = len(arr[0]) if height > 0 else 0
+
+        # Fill the upsampled array
+        for i in range(height):
+            for j in range(width):
+                # Get the value from the original array
+                value = arr[i][j]
+
+                # Fill the corresponding block in the upsampled array
+                for di in range(factor):
+                    for dj in range(factor):
+                        canvas[y_start + factor * i + di][x_start + factor * j + dj] = value
+
+        return canvas
 
     @staticmethod
     def quarternion_to_euler(orientation_q):
@@ -121,7 +187,7 @@ class DeploySterlingSim(Node):
             borderValue=-1,
         )
 
-        return rotated_data.flatten().tolist()
+        return rotated_data
 
 
 def main(args=None):

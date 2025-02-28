@@ -118,7 +118,7 @@ COPY cyclonedds.xml /root/cyclonedds.xml
 COPY docker/entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 
-WORKDIR /root/sterling/src/scripts/
+WORKDIR /root/sterling/scripts/
 
 # run this script on startup
 ENTRYPOINT /usr/bin/entrypoint.sh
