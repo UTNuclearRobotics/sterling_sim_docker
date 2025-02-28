@@ -1,12 +1,15 @@
 # Pre-requisites
+Create Python virtual environment and build the module
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
 Install these ROS packages  
 ```
 ros-${ROS_DISTRO}-cyclonedds
 ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
-```
-```bash 
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export CYCLONEDDS_URI=/path/to/this/repos/cyclonedds.xml
 ```
 
 # Bash Commands
@@ -31,5 +34,5 @@ run_nav2
 ros2 launch sterling_gazebo sidewalks.launch.py high_res:=True
 ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True
 
-ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=src/nav2_params.yaml
+ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=/root/sterling/config/nav2_params.yaml
 ```

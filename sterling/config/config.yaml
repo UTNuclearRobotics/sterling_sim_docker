@@ -1,0 +1,55 @@
+# Oak-D on Husarion Panthers
+camera_intrinsics:
+  fx: 759.8603515625
+  fy: 759.8603515625
+  cx: 637.9826049804688
+  cy: 358.5901794433594
+  matrix:
+    - [759.8603515625, 0.0, 637.9826049804688]
+    - [0.0, 759.8603515625, 358.5901794433594]
+    - [0.0, 0.0, 1.0]
+
+homography:
+  matrix:
+    - [1.2549033893146113, -0.009711844123833758, -792.5257569045234]
+    - [-0.0032050245281481844, 4.330442285389362, -2627.3111389729593]
+    - [-1.2252930562221849e-05, 0.0044237916057277196, -1.6782341544478678]
+  plane_distance: 953.5343405900574
+  plane_normal:
+    [-0.0026979805603846913, 0.9740774825122421, -0.02889754152086681]
+  rigid_transform:
+    - [
+        0.9999723092179819,
+        0.004473624025322368,
+        -0.0026979805603846913,
+        -2.183917398009045,
+      ]
+    - [
+        0.002972105650485949,
+        -0.028885045287115628,
+        0.9740774825122421,
+        311.94845293767,
+      ]
+    - [
+        0.0068225644195473644,
+        -0.9740739337931108,
+        -0.02889754152086681,
+        953.5343405900574,
+      ]
+    - [0.0, 0.0, 0.0, 1.0]
+
+deploy_sterling_sim:
+  camera_topic: "/oakd2/oak_d_node/rgb/image_rect_color"
+  odometry_topic: "/odometry/filtered"
+  local_costmap_topic: "/local_costmap/costmap"
+  # terrain_representation_model: "../models/0228_sim_low_terrain_rep.pt"
+  # kmeans_model: "../models/0228_sim_low_kmeans.pkl"
+  terrain_representation_model: "/home/nchan/sterling_sim_docker/sterling/models/0228_sim_low_terrain_rep.pt"
+  kmeans_model: "/home/nchan/sterling_sim_docker/sterling/models/0228_sim_low_kmeans.pkl"
+  terrain_preferences: {
+      0: 100, #Cluster 0: Grass
+      1: 0, #Cluster 1: Pavement
+      2: 100, #Cluster 2: Red
+      3: 50, #Cluster 3: Grass and pavement
+      4: 100, #Cluster 4: Grass and red
+    }
