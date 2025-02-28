@@ -57,9 +57,9 @@ class SterlingLocalCostmap(Node):
         siny_cosp = 2 * (orientation_q.w * orientation_q.z + orientation_q.x * orientation_q.y)
         cosy_cosp = 1 - 2 * (orientation_q.y * orientation_q.y + orientation_q.z * orientation_q.z)
         yaw_angle = np.arctan2(siny_cosp, cosy_cosp)
-
+                
         # Rotate the costmap by the yaw angle
-        rotated_msg = self.rotate_costmap(msg, 45)
+        rotated_msg = self.rotate_costmap(msg, -np.degrees(yaw_angle) + 90)
 
         # width = msg.info.width
         # height = msg.info.height
@@ -79,7 +79,8 @@ class SterlingLocalCostmap(Node):
         # msg.data = [item for sublist in data_2d for item in sublist]
 
         self.sterling_costmap_publisher.publish(rotated_msg)
-        self.get_logger().info(f"Length of data sent: {len(msg.data)}")
+        self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
+        # self.get_logger().info(f"Length of data sent: {len(msg.data)}")
 
     def rotate_costmap(self, msg, angle):
         # Convert the occupancy grid data to a numpy array

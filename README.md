@@ -31,5 +31,5 @@ run_nav2
 ros2 launch sterling_gazebo sidewalks.launch.py high_res:=True
 ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True
 
-ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=src/nav2_gradient_costmap_plugin/nav2_slam_params.yaml
+ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=src/nav2_params.yaml
 ```
