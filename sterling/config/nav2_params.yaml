@@ -190,10 +190,15 @@ local_costmap:
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
       plugins: ["voxel_layer", "inflation_layer", "sterling_layer"]
       sterling_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
         map_topic: "/sterling_local_costmap"
-        map_subscribe_transient_local: false
+        # map_subscribe_transient_local: false
+      # sterling_layer:
+      #   plugin: "nav2_costmap_2d::StaticLayer"
+      #   enabled: True
+      #   map_topic: "/sterling_local_costmap"
+      #   map_subscribe_transient_local: false
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0

@@ -1,13 +1,14 @@
+import os
+
 import cv2
 import numpy as np
 import rclpy
+import yaml
+from bev import get_BEV_image
+from bev_costmap import BEVCostmap
 from nav_msgs.msg import OccupancyGrid, Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-import yaml
-from bev_costmap import BEVCostmap
-from bev import get_BEV_image
-import os
 
 
 class DeploySterlingSim(Node):
@@ -133,7 +134,7 @@ class LocalCostmapHelper:
         Returns:
             list of list: The upsampled 2D array.
         """
-        canvas = np.zeros((self.width_cells, self.height_cells), dtype=int)
+        canvas = np.full((self.width_cells, self.height_cells), -1, dtype=int)
 
         # Get the dimensions of the original array
         height = len(arr)
