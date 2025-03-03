@@ -86,6 +86,7 @@ class BEVCostmap:
             bev_img.strides[2],
         )
         cells = np.lib.stride_tricks.as_strided(bev_img, shape=cell_shape, strides=cell_strides)
+        
         # Rearrange to (num_cells_y, num_cells_x, channels, cell_size, cell_size)
         cells = cells.transpose(0, 1, 4, 2, 3)
 
@@ -98,7 +99,7 @@ class BEVCostmap:
         else:
             costs = np.empty((0,), dtype=np.uint8)
 
-        # Assemble costmap: assign maximum cost (255) to black cells and computed costs to others.
+        # Assemble costmap: assign maximum cost (-1) to unknown cells and computed costs to others.
         costmap[black_cells] = -1
         costmap[~black_cells] = costs
 

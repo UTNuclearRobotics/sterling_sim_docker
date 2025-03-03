@@ -109,7 +109,8 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
 
 RUN echo "alias run_gazebo_high='ros2 launch sterling_gazebo sidewalks.launch.py high_res:=True'" >> ~/.bashrc
 RUN echo "alias run_gazebo_low='ros2 launch sterling_gazebo sidewalks.launch.py high_res:=False'" >> ~/.bashrc
-RUN echo "alias run_nav2='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True'" >> ~/.bashrc
+RUN echo "alias run_nav2_default='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True'" >> ~/.bashrc
+RUN echo "alias run_nav2='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=/root/sterling/config/nav2_params.yaml'" >> ~/.bashrc
 
 # copy the cyclonedds config file
 COPY cyclonedds.xml /root/cyclonedds.xml

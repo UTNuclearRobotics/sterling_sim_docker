@@ -47,7 +47,7 @@ class DeploySterlingSim(Node):
         self.camera_msg = None
         self.odometry_msg = None
         self.occupany_grid_msg = None
-        
+
         self.patch_size_px = (128, 128)
         self.patch_size_m = (0.23, 0.23)
         self.base_link_offset_m = 1.4
@@ -76,16 +76,21 @@ class DeploySterlingSim(Node):
 
         # Get terrain preferred costmap
         terrain_costmap = self.get_terrain_preferred_costmap(bev_image, self.patch_size_px[0])
-        self.get_logger().debug(f"Costmap:\n{terrain_costmap}")
+        # self.get_logger().info(f"Costmap:\n{terrain_costmap}")
+
+        # TODO: Bug that the costmap is flipped horizontally
+        terrain_costmap = np.fliplr(terrain_costmap)
 
         # Set costs in the region
-        data_2d = self.LocalCostmapHelper.set_costs_in_region(0, -self.base_link_offset_m, self.patch_size_m[0], terrain_costmap)
+        data_2d = self.LocalCostmapHelper.set_costs_in_region(
+            0, -self.base_link_offset_m, self.patch_size_m[0], terrain_costmap
+        )
 
         # Rotate the costmap by the yaw angle
         yaw_angle = LocalCostmapHelper.quarternion_to_euler(self.odometry_msg.pose.pose.orientation)
         # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
         rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, -np.degrees(yaw_angle) - 90)
-        
+
         msg = self.occupany_grid_msg
         msg.data = [int(val) for val in np.array(rotated_data).flatten()]
 
@@ -134,7 +139,7 @@ class LocalCostmapHelper:
         Returns:
             list of list: The upsampled 2D array.
         """
-        canvas = np.full((self.width_cells, self.height_cells), -1, dtype=int)
+        canvas = np.full((self.height_cells, self.width_cells), -1, dtype=int)
 
         # Get the dimensions of the original array
         height = len(arr)
@@ -178,7 +183,7 @@ class LocalCostmapHelper:
         Returns:
             rotated_data: 1D list
         """
-        width, height = data_2d.shape
+        height, width = data_2d.shape
         center = (width // 2, height // 2)
         rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
         rotated_data = cv2.warpAffine(

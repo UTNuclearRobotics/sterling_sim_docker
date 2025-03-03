@@ -188,17 +188,13 @@ local_costmap:
       height: 6
       resolution: 0.05
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
-      plugins: ["voxel_layer", "inflation_layer", "sterling_layer"]
+      plugins: ["static_layer"]
+      # plugins: ["voxel_layer", "inflation_layer", "sterling_layer"]
       sterling_layer:
-        plugin: "nav2_costmap_2d::ObstacleLayer"
+        plugin: "nav2_costmap_2d::StaticLayer"
         enabled: True
         map_topic: "/sterling_local_costmap"
-        # map_subscribe_transient_local: false
-      # sterling_layer:
-      #   plugin: "nav2_costmap_2d::StaticLayer"
-      #   enabled: True
-      #   map_topic: "/sterling_local_costmap"
-      #   map_subscribe_transient_local: false
+        map_subscribe_transient_local: false
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
@@ -224,6 +220,8 @@ local_costmap:
           obstacle_max_range: 1.5
           obstacle_min_range: 0.0
       static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        enabled: True
         map_subscribe_transient_local: True
       always_send_full_costmap: True
   local_costmap_client:
@@ -245,30 +243,30 @@ global_costmap:
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer"]
       # plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
-      # static_layer:
-      #   plugin: "nav2_costmap_2d::StaticLayer"
-      #   map_topic: "/costmap_black"
-      #   map_subscribe_transient_local: false
-      obstacle_layer:
-        plugin: "nav2_costmap_2d::ObstacleLayer"
-        enabled: True
-        observation_sources: scan
-        scan:
-          topic: /ouster/scan
-          max_obstacle_height: 2.0
-          clearing: True
-          marking: True
-          data_type: "LaserScan"
-          raytrace_max_range: 2.5
-          raytrace_min_range: 0.0
-          obstacle_max_range: 2.0
-          obstacle_min_range: 0.0
-      inflation_layer:
-        plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_topic: "/sterling_local_costmap"
+        map_subscribe_transient_local: false
+      # obstacle_layer:
+      #   plugin: "nav2_costmap_2d::ObstacleLayer"
+      #   enabled: True
+      #   observation_sources: sterling_local_costmap
+      #   scan:
+      #     topic: /sterling_local_costmap
+      #     max_obstacle_height: 2.0
+      #     clearing: True
+      #     marking: True
+      #     data_type: "LaserScan"
+      #     raytrace_max_range: 2.5
+      #     raytrace_min_range: 0.0
+      #     obstacle_max_range: 2.0
+      #     obstacle_min_range: 0.0
+      # inflation_layer:
+      #   plugin: "nav2_costmap_2d::InflationLayer"
+      #   cost_scaling_factor: 3.0
+      #   inflation_radius: 0.55
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
