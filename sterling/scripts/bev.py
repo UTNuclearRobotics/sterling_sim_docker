@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 
 
-@staticmethod
 def get_BEV_image(image, H, patch_size=(128, 128), grid_size=(7, 12), visualize=False):
     annotated_image = image.copy()
     rows, cols = grid_size
@@ -52,10 +51,10 @@ def get_BEV_image(image, H, patch_size=(128, 128), grid_size=(7, 12), visualize=
 
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+        exit()
 
     return stitched_image
 
-@staticmethod
 def draw_points(image, H, patch_size=(128, 128), color=(0, 255, 0), thickness=2):
     """
     Draw the boundaries of patches extracted via homography on the original image.

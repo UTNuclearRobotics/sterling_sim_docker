@@ -72,17 +72,9 @@ class BEVCostmap:
         costmap = np.empty((num_cells_y, num_cells_x), dtype=np.int8)
 
         # Create mask for black regions.
-        # If these dimensions and cell_size remain constant, consider caching the following mask.
-        mask = np.zeros((height, width), dtype=np.uint8)
-        triangle_left = np.array([[0, height], [0, 3 * height // 4], [width // 4, height]], dtype=np.int32)
-        triangle_right = np.array(
-            [[width, height], [width, 3 * height // 4], [width - width // 4, height]], dtype=np.int32
-        )
-        cv2.fillPoly(mask, [triangle_left, triangle_right], 255)
-        mask = mask[:effective_height, :effective_width]
-
-        # Reshape mask into cells and compute per-cell max to detect any black pixel.
-        black_cells = mask.reshape(num_cells_y, cell_size, num_cells_x, cell_size).max(axis=(1, 3)) == 255
+        black_cells = np.zeros((num_cells_y, num_cells_x), dtype=bool)
+        black_cells[-2, [0, -1]] = True  # Row -2, columns 0 and -1
+        black_cells[-1, [0, 1, -2, -1]] = True  # Row -1, columns 0, 1, -2, and -1
 
         # Use stride tricks to extract cell views without copying data.
         channels = bev_img.shape[2]

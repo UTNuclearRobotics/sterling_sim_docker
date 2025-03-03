@@ -34,8 +34,7 @@ class DeploySterlingSim(Node):
         # Timers
         self.timer = self.create_timer(1.0, self.update_costmap)
 
-        H = np.array(HOMOGRAPHY["matrix"])
-        self.H_INV = np.linalg.inv(H)
+        self.H = np.array(HOMOGRAPHY["matrix"])
 
         self.get_terrain_preferred_costmap = BEVCostmap(
             DEPLOY_NODE["terrain_representation_model"], DEPLOY_NODE["kmeans_model"], DEPLOY_NODE["terrain_preferences"]
@@ -47,6 +46,10 @@ class DeploySterlingSim(Node):
         self.camera_msg = None
         self.odometry_msg = None
         self.occupany_grid_msg = None
+        
+        self.patch_size_px = (128, 128)
+        self.patch_size_m = (0.23, 0.23)
+        self.base_link_offset_m = 1.4
 
     def camera_callback(self, msg):
         self.camera_msg = msg
@@ -67,16 +70,15 @@ class DeploySterlingSim(Node):
         image_data = np.frombuffer(self.camera_msg.data, dtype=np.uint8).reshape(
             self.camera_msg.height, self.camera_msg.width, -1
         )
-        bev_image = get_BEV_image(image_data, self.H_INV, (128, 128), (7, 12))
+        # Preview the image using OpenCV
+        bev_image = get_BEV_image(image_data, self.H, self.patch_size_px, (7, 12))
 
         # Get terrain preferred costmap
-        terrain_costmap = self.get_terrain_preferred_costmap(bev_image, 128)
-        self.get_logger().info(f"Costmap:\n{terrain_costmap}")
+        terrain_costmap = self.get_terrain_preferred_costmap(bev_image, self.patch_size_px[0])
+        self.get_logger().debug(f"Costmap:\n{terrain_costmap}")
 
         # Set costs in the region
-        tile_width = 0.23  # 128 pixel is meters in the real world
-        base_link_offset = 1.4
-        data_2d = self.LocalCostmapHelper.set_costs_in_region(0, -base_link_offset, tile_width, terrain_costmap)
+        data_2d = self.LocalCostmapHelper.set_costs_in_region(0, -self.base_link_offset_m, self.patch_size_m[0], terrain_costmap)
 
         # Rotate the costmap by the yaw angle
         yaw_angle = LocalCostmapHelper.quarternion_to_euler(self.odometry_msg.pose.pose.orientation)
