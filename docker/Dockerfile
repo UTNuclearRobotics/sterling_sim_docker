@@ -95,6 +95,9 @@ RUN rosdep install --from-paths src --ignore-src -r -y
 # TODO: the --continue-on-error should not be needed.
 RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --continue-on-error
 
+# Remove unnecessary files
+RUN rm -rf src build logs
+
 RUN apt update && apt install -y \
     ros-${ROS_DISTRO}-cyclonedds \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp

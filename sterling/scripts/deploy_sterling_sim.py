@@ -90,10 +90,11 @@ class DeploySterlingSim(Node):
         yaw_angle = LocalCostmapHelper.quarternion_to_euler(self.odometry_msg.pose.pose.orientation)
         # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
         rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, -np.degrees(yaw_angle) - 90)
+        rotated_data = np.array(rotated_data).flatten()
 
         msg = self.occupany_grid_msg
-        msg.data = [int(val) for val in np.array(rotated_data).flatten()]
-
+        msg.data = np.maximum(msg.data, rotated_data).tolist()
+        
         # Publish message
         self.sterling_costmap_publisher.publish(msg)
 
