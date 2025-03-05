@@ -182,14 +182,16 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_link
+      lethal_cost_threshold: 100
+      trinary_costmap: False
       use_sim_time: False
       rolling_window: true
       width: 6
       height: 6
       resolution: 0.05
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
-      plugins: ["static_layer", "sterling_layer"]
-      # plugins: ["voxel_layer", "inflation_layer", "sterling_layer"]
+      plugins: ["static_layer", "sterling_layer", "obstacle_layer"]
+      # plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: True
@@ -199,10 +201,24 @@ local_costmap:
         enabled: True
         map_topic: "/sterling_local_costmap"
         map_subscribe_transient_local: false
-      # inflation_layer:
-      #   plugin: "nav2_costmap_2d::InflationLayer"
-      #   cost_scaling_factor: 3.0
-      #   inflation_radius: 0.55
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        scan:
+          topic: /ouster/scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 2.5
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.0
+          obstacle_min_range: 0.0
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.55
       # voxel_layer:
       #   plugin: "nav2_costmap_2d::VoxelLayer"
       #   enabled: True

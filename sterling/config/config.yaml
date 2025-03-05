@@ -48,9 +48,9 @@ deploy_sterling_sim:
   terrain_representation_model: "/home/nchan/sterling_sim_docker/sterling/models/0228_sim_low_terrain_rep.pt"
   kmeans_model: "/home/nchan/sterling_sim_docker/sterling/models/0228_sim_low_kmeans.pkl"
   terrain_preferences: {
-      0: 100, #Cluster 0: Grass
+      0: 80, #Cluster 0: Grass
       1: 0, #Cluster 1: Pavement
-      2: 100, #Cluster 2: Red
+      2: 80, #Cluster 2: Red
       3: 50, #Cluster 3: Grass and pavement
-      4: 100, #Cluster 4: Grass and red
+      4: 80, #Cluster 4: Grass and red
     }
