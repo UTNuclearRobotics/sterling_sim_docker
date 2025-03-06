@@ -113,7 +113,7 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
 RUN echo "alias run_gazebo_high='ros2 launch sterling_gazebo sidewalks.launch.py high_res:=True'" >> ~/.bashrc
 RUN echo "alias run_gazebo_low='ros2 launch sterling_gazebo sidewalks.launch.py high_res:=False'" >> ~/.bashrc
 RUN echo "alias run_nav2_default='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True'" >> ~/.bashrc
-RUN echo "alias run_nav2='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=/root/sterling/config/nav2_params.yaml'" >> ~/.bashrc
+RUN echo "alias run_nav2='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=/root/ros2_ws/src/sterling/config/nav2_params.yaml'" >> ~/.bashrc
 
 # copy the cyclonedds config file
 COPY cyclonedds.xml /root/cyclonedds.xml
@@ -122,7 +122,7 @@ COPY cyclonedds.xml /root/cyclonedds.xml
 COPY docker/entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 
-WORKDIR /root/sterling/scripts/
+WORKDIR /root/ros2_ws/
 
 # run this script on startup
 ENTRYPOINT /usr/bin/entrypoint.sh

@@ -54,3 +54,9 @@ deploy_sterling_sim:
       3: 50, #Cluster 3: Grass and pavement
       4: 80, #Cluster 4: Grass and red
     }
+
+global_costmap_builder:
+  ros__parameters:
+    local_costmap_topic: "sterling/local_costmap"
+    global_costmap_topic: "sterling/global_costmap"
+    # Husarion map saver

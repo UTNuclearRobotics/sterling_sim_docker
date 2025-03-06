@@ -47,7 +47,6 @@ class DeploySterlingSim(Node):
         self.camera_msg = None
         self.odometry_msg = None
         self.occupany_grid_msg = None
-        self.previous_data = None
 
         self.patch_size_px = (128, 128)
         self.patch_size_m = (0.23, 0.23)
@@ -62,11 +61,12 @@ class DeploySterlingSim(Node):
     def costmap_callback(self, msg):
         if self.LocalCostmapHelper is None:
             self.LocalCostmapHelper = LocalCostmapHelper(msg.info.resolution, msg.info.width, msg.info.height)
-            self.previous_data = np.full((self.LocalCostmapHelper.height_cells, self.LocalCostmapHelper.width_cells), -1, dtype=int).flatten().tolist()
-
         self.occupany_grid_msg = msg
 
     def update_costmap(self):
+        """
+        Use the rolling window of the local costmap to stitch the terrain preferred local costmap.
+        """
         if not self.camera_msg or not self.odometry_msg or not self.occupany_grid_msg:
             return
 
@@ -95,9 +95,9 @@ class DeploySterlingSim(Node):
         rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, -np.degrees(yaw_angle) - 90)
         rotated_data = np.array(rotated_data).flatten()
 
+        # Keep the highest cost when stitching the local costmap
         msg = self.occupany_grid_msg
         msg.data = np.maximum(msg.data, rotated_data).tolist()
-        # self.previous_data = msg.data
         
         # Publish message
         self.sterling_costmap_publisher.publish(msg)

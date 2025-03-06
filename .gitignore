@@ -4,3 +4,4 @@ venv
 __pycache__/
 id_rsa
 models
+build
