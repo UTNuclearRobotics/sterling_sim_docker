@@ -1,11 +1,4 @@
 # Pre-requisites
-Create Python virtual environment and build the module
-```bash
-python -m venv venv
-source venv/bin/activate
-pip install -e .
-```
-
 Install these ROS packages  
 ```
 ros-${ROS_DISTRO}-cyclonedds

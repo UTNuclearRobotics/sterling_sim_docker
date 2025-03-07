@@ -6,46 +6,45 @@ from rclpy.node import Node
 
 class GlobalCostmapBuilder(Node):
     def __init__(self):
-        super().__init__("sterling/global_costmap_builder")
-        
-        # Declare and get parameters from the ROS parameter server
-        self.declare_parameter('global_resolution', 0.05)
-        self.declare_parameter('global_width', 100)
-        self.declare_parameter('global_height', 100)
-        self.declare_parameter('global_origin_x', -2.5)
-        self.declare_parameter('global_origin_y', -2.5)
+        super().__init__("global_costmap_builder")
 
-        self.global_resolution = self.get_parameter('global_resolution').value
-        self.global_width = self.get_parameter('global_width').value
-        self.global_height = self.get_parameter('global_height').value
-        self.global_origin_x = self.get_parameter('global_origin_x').value
-        self.global_origin_y = self.get_parameter('global_origin_y').value
+        # Declare and get parameters
+        self.local_costmap_topic = self.get_parameter("local_costmap_topic").value
+        self.global_costmap_topic = self.get_parameter("global_costmap_topic").value
 
         # Subscribe to the local costmap
         self.subscription = self.create_subscription(
             OccupancyGrid,
-            "/local_costmap/costmap",  # Local costmap topic
+            self.local_costmap_topic,
             self.local_costmap_callback,
+            10,
+        )
+        
+        # Subscribe to the global costmap
+        self.subscription = self.create_subscription(
+            OccupancyGrid,
+            self.global_costmap_topic,
+            self.global_costmap_callback,
             10,
         )
 
         # Publisher for the global costmap
         self.publisher = self.create_publisher(
             OccupancyGrid,
-            "/global_costmap",  # Global costmap topic
+            "/global_costmap",
             10,
         )
-
-        # Initialize the global costmap
-        self.global_resolution = 0.05  # Resolution of the global costmap (meters per cell)
-        self.global_width = 100  # Initial width of the global costmap (cells)
-        self.global_height = 100  # Initial height of the global costmap (cells)
-        self.global_origin_x = -2.5  # Initial X origin of the global costmap (meters)
-        self.global_origin_y = -2.5  # Initial Y origin of the global costmap (meters)
-
-        # Initialize the global costmap grid
-        self.global_grid = np.zeros((self.global_height, self.global_width), dtype=np.int8)
-
+        
+        self.global_costmap_msg = None
+        
+    def global_costmap_callback(self, msg):
+        self.global_costmap_msg = msg
+        self.global_origin_x = msg.info.origin.position.x
+        self.global_origin_y = msg.info.origin.position.y
+        self.global_resolution = msg.info.resolution
+        self.global_width = msg.info.width
+        self.global_height = msg.info.height
+        
     def local_costmap_callback(self, msg):
         # Extract local costmap data
         local_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)

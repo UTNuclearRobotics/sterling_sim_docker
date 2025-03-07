@@ -28,6 +28,5 @@ sterling:
 
   global_costmap_builder:
     ros__parameters:
-      local_costmap_topic: "sterling/local_costmap"
-      global_costmap_topic: "sterling/global_costmap"
-      # Husarion map saver
+      local_costmap_topic: "/sterling/local_costmap"
+      global_costmap_topic: "/global_costmap/costmap"

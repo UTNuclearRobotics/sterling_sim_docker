@@ -1,4 +1,3 @@
-
 from setuptools import find_packages, setup
 
 
@@ -20,7 +19,17 @@ setup(
         (os.path.join("share", package_name, "launch"), [os.path.join("launch", "sim.launch.py")]),
         (os.path.join("lib", package_name), lib_files),
     ],
-    install_requires=["setuptools", "opencv-python", "numpy", "joblib", "scikit-learn", "torch", "pyyaml"],
+    install_requires=[
+        "setuptools",
+        "opencv-python",
+        "numpy",
+        "joblib",
+        "scikit-learn",
+        "torch",
+        "pyyaml",
+        "tensorflow",
+        "torchvision",
+    ],
     zip_safe=True,
     maintainer="nchan",
     maintainer_email="nick.chan@utexas.edu",
