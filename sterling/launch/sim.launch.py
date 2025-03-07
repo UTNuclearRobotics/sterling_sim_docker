@@ -17,12 +17,12 @@ def generate_launch_description():
                 namespace=namespace,
                 parameters=[params_file],
             ),
-            # Node(
-            #     package="sterling",
-            #     executable="global_costmap_builder",
-            #     name="global_costmap_builder",
-            #     namespace=namespace,
-            #     parameters=[params_file],
-            # )
+            Node(
+                package="sterling",
+                executable="global_costmap_builder",
+                name="global_costmap_builder",
+                namespace=namespace,
+                parameters=[params_file],
+            )
         ]
     )
