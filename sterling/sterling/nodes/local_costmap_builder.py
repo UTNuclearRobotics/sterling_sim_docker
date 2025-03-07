@@ -1,26 +1,53 @@
-import os
-
 import cv2
 import numpy as np
 import rclpy
-import yaml
-from bev import get_BEV_image
-from bev_costmap import BEVCostmap
 from nav_msgs.msg import OccupancyGrid, Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 
+from sterling.bev import get_BEV_image
+from sterling.bev_costmap import BEVCostmap
 
-class DeploySterlingSim(Node):
-    def __init__(self, config):
-        super().__init__("deploy_sterling_sim")
-        HOMOGRAPHY = config["homography"]
-        DEPLOY_NODE = config["deploy_sterling_sim"]
 
-        # Topics
-        self.camera_topic = DEPLOY_NODE["camera_topic"]
-        self.odometry_topic = DEPLOY_NODE["odometry_topic"]
-        self.local_costmap_topic = DEPLOY_NODE["local_costmap_topic"]
+class LocalCostmapBuilder(Node):
+    def __init__(self):
+        super().__init__("local_costmap_builder")
+
+        # Declare parameters with default values
+        self.declare_parameter("camera_topic", "/oakd2/oak_d_node/rgb/image_rect_color")
+        self.declare_parameter("odometry_topic", "/odometry/filtered")
+        self.declare_parameter("local_costmap_topic", "/local_costmap/costmap")
+        self.declare_parameter("terrain_representation_model", "path/to/terrain_representation_model.pt")
+        self.declare_parameter("kmeans_model", "/path/to/kmeans_model.pkl")
+        self.declare_parameter("terrain_preferences", [0])
+        self.declare_parameter("homography_matrix", [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
+        self.declare_parameter("patch_size_px", 128)
+        self.declare_parameter("patch_size_m", 0.23)
+        self.declare_parameter("base_link_offset_m", 1.4)
+
+        # Get parameter values
+        self.camera_topic = self.get_parameter("camera_topic").value
+        self.odometry_topic = self.get_parameter("odometry_topic").value
+        self.local_costmap_topic = self.get_parameter("local_costmap_topic").value
+        terrain_representation_model = self.get_parameter("terrain_representation_model").value
+        kmeans_model = self.get_parameter("kmeans_model").value
+        terrain_preferences = self.get_parameter("terrain_preferences").value
+        self.H = np.array(self.get_parameter("homography_matrix").value).reshape(3, 3)
+        self.patch_size_px = self.get_parameter("patch_size_px").value
+        self.patch_size_m = self.get_parameter("patch_size_m").value
+        self.base_link_offset_m = self.get_parameter("base_link_offset_m").value
+        
+        # Print parameter values
+        self.get_logger().info(f"Camera topic: {self.camera_topic}")
+        self.get_logger().info(f"Odometry topic: {self.odometry_topic}")
+        self.get_logger().info(f"Local costmap topic: {self.local_costmap_topic}")
+        self.get_logger().info(f"Terrain representation model: {terrain_representation_model}")
+        self.get_logger().info(f"KMeans model: {kmeans_model}")
+        self.get_logger().info(f"Terrain preferences: {terrain_preferences}")
+        self.get_logger().info(f"Homography matrix: \n{self.H}")
+        self.get_logger().info(f"Patch size (px): {self.patch_size_px}")
+        self.get_logger().info(f"Patch size (m): {self.patch_size_m}")
+        self.get_logger().info(f"Base link offset (m): {self.base_link_offset_m}")
 
         # Subscribers
         self.camera_subscriber = self.create_subscription(Image, self.camera_topic, self.camera_callback, 10)
@@ -30,15 +57,13 @@ class DeploySterlingSim(Node):
         )
 
         # Publishers
-        self.sterling_costmap_publisher = self.create_publisher(OccupancyGrid, "sterling_local_costmap", 10)
+        self.sterling_costmap_publisher = self.create_publisher(OccupancyGrid, "local_costmap", 10)
 
         # Timers
         self.timer = self.create_timer(1.0, self.update_costmap)
 
-        self.H = np.array(HOMOGRAPHY["matrix"])
-
         self.get_terrain_preferred_costmap = BEVCostmap(
-            DEPLOY_NODE["terrain_representation_model"], DEPLOY_NODE["kmeans_model"], DEPLOY_NODE["terrain_preferences"]
+            terrain_representation_model, kmeans_model, terrain_preferences
         ).BEV_to_costmap
 
         self.LocalCostmapHelper = None
@@ -47,10 +72,6 @@ class DeploySterlingSim(Node):
         self.camera_msg = None
         self.odometry_msg = None
         self.occupany_grid_msg = None
-
-        self.patch_size_px = (128, 128)
-        self.patch_size_m = (0.23, 0.23)
-        self.base_link_offset_m = 1.4
 
     def camera_callback(self, msg):
         self.camera_msg = msg
@@ -75,10 +96,10 @@ class DeploySterlingSim(Node):
             self.camera_msg.height, self.camera_msg.width, -1
         )
         # Preview the image using OpenCV
-        bev_image = get_BEV_image(image_data, self.H, self.patch_size_px, (7, 12))
+        bev_image = get_BEV_image(image_data, self.H, (self.patch_size_px, self.patch_size_px), (7, 12))
 
         # Get terrain preferred costmap
-        terrain_costmap = self.get_terrain_preferred_costmap(bev_image, self.patch_size_px[0])
+        terrain_costmap = self.get_terrain_preferred_costmap(bev_image, self.patch_size_px)
         # self.get_logger().info(f"Costmap:\n{terrain_costmap}")
 
         # TODO: Bug that the costmap is flipped horizontally
@@ -86,7 +107,7 @@ class DeploySterlingSim(Node):
 
         # Set costs in the region
         data_2d = self.LocalCostmapHelper.set_costs_in_region(
-            0, -self.base_link_offset_m, self.patch_size_m[0], terrain_costmap
+            0, -self.base_link_offset_m, self.patch_size_m, terrain_costmap
         )
 
         # Rotate the costmap by the yaw angle
@@ -98,7 +119,7 @@ class DeploySterlingSim(Node):
         # Keep the highest cost when stitching the local costmap
         msg = self.occupany_grid_msg
         msg.data = np.maximum(msg.data, rotated_data).tolist()
-        
+
         # Publish message
         self.sterling_costmap_publisher.publish(msg)
 
@@ -204,14 +225,8 @@ class LocalCostmapHelper:
 
 
 def main(args=None):
-    # Load the config
-    script_dir = os.path.dirname(__file__)
-    config_file = os.path.join(script_dir, "../config/config.yaml")
-    with open(config_file, "r") as file:
-        config = yaml.safe_load(file)
-
     rclpy.init(args=args)
-    costmap_updater = DeploySterlingSim(config)
+    costmap_updater = LocalCostmapBuilder()
     rclpy.spin(costmap_updater)
     costmap_updater.destroy_node()
     rclpy.shutdown()

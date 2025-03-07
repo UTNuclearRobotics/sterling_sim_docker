@@ -5,15 +5,24 @@ import os
 
 
 def generate_launch_description():
-    config_file = os.path.join(get_package_share_directory("sterling"), "config", "config.yaml")
+    params_file = os.path.join(get_package_share_directory("sterling"), "config", "params.yaml")
+    namespace = "sterling" # Namespaced so topics have namespace/node_name or namespace/topic_name
 
     return LaunchDescription(
         [
             Node(
                 package="sterling",
-                executable="global_costmap_builder",
-                name="global_costmap_builder",
-                parameters=[config_file],
-            )
+                executable="local_costmap_builder",
+                name="local_costmap_builder",
+                namespace=namespace,
+                parameters=[params_file],
+            ),
+            # Node(
+            #     package="sterling",
+            #     executable="global_costmap_builder",
+            #     name="global_costmap_builder",
+            #     namespace=namespace,
+            #     parameters=[params_file],
+            # )
         ]
     )

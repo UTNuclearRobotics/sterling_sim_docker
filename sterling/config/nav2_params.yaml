@@ -203,7 +203,7 @@ local_costmap:
       sterling_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: True
-        map_topic: "/sterling_local_costmap"
+        map_topic: "/sterling/local_costmap"
         map_subscribe_transient_local: false
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"

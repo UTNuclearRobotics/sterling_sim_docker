@@ -1,0 +1,33 @@
+sterling:
+  local_costmap_builder:
+    ros__parameters:
+      camera_topic: "/oakd2/oak_d_node/rgb/image_rect_color"
+      odometry_topic: "/odometry/filtered"
+      local_costmap_topic: "/local_costmap/costmap"
+      terrain_representation_model: "/root/ros2_ws/src/sterling/models/0228_sim_low_terrain_rep.pt"
+      kmeans_model: "/root/ros2_ws/src/sterling/models/0228_sim_low_kmeans.pkl"
+      terrain_preferences:
+        [80, 0, 80, 50, 80]
+        # Cluster 0: Grass
+        # Cluster 1: Pavement
+        # Cluster 2: Red
+        # Cluster 3: Grass and pavement
+        # Cluster 4: Grass and red
+      homography_matrix:
+        [
+          1.2549033893146113,
+          -0.009711844123833758,
+          -792.5257569045234,
+          -0.0032050245281481844,
+          4.330442285389362,
+          -2627.3111389729593,
+          -1.2252930562221849e-05,
+          0.0044237916057277196,
+          -1.6782341544478678,
+        ]
+
+  global_costmap_builder:
+    ros__parameters:
+      local_costmap_topic: "sterling/local_costmap"
+      global_costmap_topic: "sterling/global_costmap"
+      # Husarion map saver

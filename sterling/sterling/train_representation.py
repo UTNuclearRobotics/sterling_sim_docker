@@ -1,12 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
-# from terrain_dataset import TerrainDataset
-# from torch.utils.data import DataLoader
-from vicreg_loss import VICRegLoss
-from visual_encoder_model import VisualEncoderModel
-# from proprioception_model import ProprioceptionModel
-# from torchvision import transforms
-# import torchvision.transforms.v2 as v2
+
+from sterling.vicreg_loss import VICRegLoss
+from sterling.visual_encoder_model import VisualEncoderModel
+
 
 class SterlingPaternRepresentation(nn.Module):
     def __init__(self, device):

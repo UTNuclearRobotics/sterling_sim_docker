@@ -4,7 +4,8 @@ import joblib
 import numpy as np
 import torch
 from sklearn.preprocessing import normalize
-from train_representation import SterlingPaternRepresentation
+
+from sterling.train_representation import SterlingPaternRepresentation
 
 
 class BEVCostmap:
@@ -52,7 +53,7 @@ class BEVCostmap:
     def calculate_cell_costs(self, cells):
         """Batch process cell costs."""
         cluster_labels = self.predict_clusters(cells)
-        costs = [self.preferences.get(label, 0) for label in cluster_labels]
+        costs = [self.preferences[label] for label in cluster_labels]
         return costs
 
     def BEV_to_costmap(self, bev_img, cell_size):
