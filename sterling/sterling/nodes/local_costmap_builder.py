@@ -118,7 +118,8 @@ class LocalCostmapBuilder(Node):
 
         # Keep the highest cost when stitching the local costmap
         msg = self.occupany_grid_msg
-        msg.data = np.maximum(msg.data, rotated_data).tolist()
+        msg.data = rotated_data.tolist()
+        # msg.data = np.maximum(msg.data, rotated_data).tolist()
 
         # Publish message
         self.sterling_costmap_publisher.publish(msg)

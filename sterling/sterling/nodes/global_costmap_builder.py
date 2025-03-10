@@ -5,6 +5,13 @@ from rclpy.node import Node
 
 
 class GlobalCostmapBuilder(Node):
+    """
+    Listens to the global costmap know origin and when to resize the map.
+    The only values being placed onto the global costamp are stitched sterling local costmaps.
+    
+    Requires local_costmap, global_costmap, and slam_toolbox map resolutions to be the same.
+    """
+
     def __init__(self):
         super().__init__("global_costmap_builder")
 
@@ -76,9 +83,6 @@ class GlobalCostmapBuilder(Node):
         local_origin_x = msg.info.origin.position.x
         local_origin_y = msg.info.origin.position.y
 
-        # Print local resolution vs global resolution
-        self.get_logger().info(f"Local resolution: {local_resolution}, Global resolution: {self.global_resolution}")
-
         # Transform local costmap data to stitched costmap frame
         for y in range(msg.info.height):
             for x in range(msg.info.width):
@@ -121,11 +125,9 @@ class GlobalCostmapBuilder(Node):
                     new_stitched_costmap[new_y, new_x] = self.stitched_costmap[y, x]
 
         # Update the stitched costmap properties
-        self.stitched_origin_x = self.global_origin_x
-        self.stitched_origin_y = self.global_origin_y
         self.stitched_width = self.global_width
         self.stitched_height = self.global_height
-
+        
         # Update the stitched costmap
         self.stitched_costmap = new_stitched_costmap
         self.get_logger().info(f"Resized stitched costmap to {self.stitched_width}x{self.stitched_height}")
