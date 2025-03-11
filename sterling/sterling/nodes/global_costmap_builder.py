@@ -3,6 +3,9 @@ import rclpy
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from std_srvs.srv import Trigger
+from datetime import datetime
+import os
 
 # Define a QoS profile with Transient Local durability
 qos_profile = QoSProfile(
@@ -58,8 +61,12 @@ class GlobalCostmapBuilder(Node):
             qos_profile=qos_profile,
         )
 
+        # Create a service to save the costmap
+        self.service = self.create_service(Trigger, "save_costmap", self.save_costmap_callback)
+
         # Initialize stitched costmap
         self.stitched_costmap = None
+        self.update_msg = None
 
     def global_costmap_callback(self, msg):
         """Callback for the global costmap."""
@@ -111,9 +118,9 @@ class GlobalCostmapBuilder(Node):
                     self.stitched_costmap[stitched_y, stitched_x] = max(current_value, new_value)
 
         # Publish the updated global costmap
-        update_msg = self.global_msg
-        update_msg.data = self.stitched_costmap.flatten().tolist()
-        self.stitched_costmap_publisher.publish(update_msg)
+        self.update_msg = self.global_msg
+        self.update_msg.data = self.stitched_costmap.flatten().tolist()
+        self.stitched_costmap_publisher.publish(self.update_msg)
 
     def resize_stitched_costmap(self):
         """Resize the stitched costmap to accommodate new data."""
@@ -140,6 +147,67 @@ class GlobalCostmapBuilder(Node):
         # Update the stitched costmap
         self.stitched_costmap = new_stitched_costmap
         self.get_logger().info(f"Resized stitched costmap to {self.stitched_width}x{self.stitched_height}")
+
+    def save_costmap_callback(self, request, response):
+        """Service callback to save the costmap to a file."""
+        if self.update_msg is None:
+            response.success = False
+            response.message = "No costmap data received yet."
+            self.get_logger().warn(response.message)
+            return response
+
+        try:
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            os.makedirs(f"global_costmap_{current_time}", exist_ok=True)
+            pgm_filename = f"global_costmap_{current_time}/costmap.pgm"
+            yaml_filename = f"global_costmap_{current_time}/costmap.yaml"
+
+            # Save the costmap to a PGM file
+            GlobalCostmapBuilder.save_costmap_to_pgm(self.update_msg, pgm_filename)
+
+            # Save the costmap metadata to a YAML file
+            GlobalCostmapBuilder.save_costmap_to_yaml(self.update_msg, yaml_filename)
+
+            response.success = True
+            response.message = f"Costmap saved to global_costmap_{current_time}"
+            self.get_logger().info(response.message)
+        except Exception as e:
+            response.success = False
+            response.message = f"Failed to save costmap: {str(e)}"
+            self.get_logger().error(response.message)
+
+        return response
+
+    @staticmethod
+    def save_costmap_to_pgm(costmap, filename):
+        """Save the costmap data to a PGM file."""
+        # Convert the costmap data to a 2D array
+        data = np.array(costmap.data, dtype=np.int8).reshape((costmap.info.height, costmap.info.width))
+
+        # Convert cost values to PGM format (0-255)
+        data = np.clip(data, 0, 100)  # Clip values to 0-100 (Nav2 costmap range)
+        data = (data * 2.55).astype(np.uint8)  # Scale to 0-255
+
+        # Write the PGM file
+        with open(filename, "wb") as pgm_file:
+            pgm_file.write(b"P5\n")  # PGM magic number
+            pgm_file.write(f"{costmap.info.width} {costmap.info.height}\n".encode())  # Width and height
+            pgm_file.write(b"255\n")  # Maximum grayscale value
+            pgm_file.write(data.tobytes())  # Binary data
+
+    @staticmethod
+    def save_costmap_to_yaml(costmap, filename):
+        """Save the costmap metadata to a YAML file."""
+        yaml_content = {
+            "image": filename.replace(".yaml", ".pgm"),
+            "resolution": costmap.info.resolution,
+            "origin": [costmap.info.origin.position.x, costmap.info.origin.position.y, 0.0],
+            "negate": 0,
+            "occupied_thresh": 0.65,
+            "free_thresh": 0.196,
+        }
+        with open(filename, "w") as yaml_file:
+            yaml_file.write(yaml_content)
 
 
 def main(args=None):
