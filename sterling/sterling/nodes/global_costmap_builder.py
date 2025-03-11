@@ -2,13 +2,22 @@ import numpy as np
 import rclpy
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+
+# Define a QoS profile with Transient Local durability
+qos_profile = QoSProfile(
+    depth=10,  # Queue size
+    history=QoSHistoryPolicy.KEEP_LAST,  # Keep last N messages
+    reliability=QoSReliabilityPolicy.RELIABLE,  # Reliable delivery
+    durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,  # Transient Local durability
+)
 
 
 class GlobalCostmapBuilder(Node):
     """
     Listens to the global costmap know origin and when to resize the map.
     The only values being placed onto the global costamp are stitched sterling local costmaps.
-    
+
     Requires local_costmap, global_costmap, and slam_toolbox map resolutions to be the same.
     """
 
@@ -46,7 +55,7 @@ class GlobalCostmapBuilder(Node):
         self.stitched_costmap_publisher = self.create_publisher(
             OccupancyGrid,
             "global_costmap",
-            10,
+            qos_profile=qos_profile,
         )
 
         # Initialize stitched costmap
@@ -127,7 +136,7 @@ class GlobalCostmapBuilder(Node):
         # Update the stitched costmap properties
         self.stitched_width = self.global_width
         self.stitched_height = self.global_height
-        
+
         # Update the stitched costmap
         self.stitched_costmap = new_stitched_costmap
         self.get_logger().info(f"Resized stitched costmap to {self.stitched_width}x{self.stitched_height}")

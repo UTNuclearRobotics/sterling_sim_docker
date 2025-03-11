@@ -194,8 +194,8 @@ local_costmap:
       resolution: 0.05
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
       # Sterling layer should be last, we don't want inflation to affect it
-      # plugins: ["static_layer", "obstacle_layer", "inflation_layer", "sterling_layer"]
-      plugins: ["static_layer", "sterling_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      # plugins: ["static_layer", "sterling_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: True
@@ -260,21 +260,22 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
+      trinary_costmap: False  # Enable gradient costs
       use_maximum: True
       footprint: '[[0.420, 0.4025], [0.420, -0.4025], [-0.420, -0.4025], [-0.420, 0.4025]]'
       resolution: 0.05
       track_unknown_space: true
-      plugins: [ "static_layer", "obstacle_layer", "inflation_layer"]
-      static_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        enabled: True
-        map_topic: "/map"  # Topic for the saved map
-        map_subscribe_transient_local: True
+      plugins: ["sterling_layer", "static_layer", "obstacle_layer", "inflation_layer"]
       sterling_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: True
-        map_topic: "/sterling_local_costmap"
-        map_subscribe_transient_local: false
+        map_topic: "/sterling/global_costmap"
+        map_subscribe_transient_local: True
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        enabled: True
+        map_topic: "/map"
+        map_subscribe_transient_local: True
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True

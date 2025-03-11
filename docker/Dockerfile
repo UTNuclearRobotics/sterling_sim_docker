@@ -114,6 +114,7 @@ RUN echo "alias run_gazebo_high='ros2 launch sterling_gazebo sidewalks.launch.py
 RUN echo "alias run_gazebo_low='ros2 launch sterling_gazebo sidewalks.launch.py high_res:=False'" >> ~/.bashrc
 RUN echo "alias run_nav2_default='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True'" >> ~/.bashrc
 RUN echo "alias run_nav2='ros2 launch husarion_nav2 navigation2_bringup.launch.py use_rviz:=True use_sim_time:=True nav2_config_file_slam:=/root/ros2_ws/src/sterling/config/nav2_params.yaml'" >> ~/.bashrc
+RUN echo "alias run_costmap='source /root/ros2_ws/install/setup.bash && ros2 launch sterling costmaps.launch.py'" >> ~/.bashrc
 
 # Sterling dependencies
 RUN pip install \
