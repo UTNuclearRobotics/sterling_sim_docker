@@ -4,10 +4,10 @@ import rclpy
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from tf2_ros import Buffer, TransformListener
 
 from sterling.bev import get_BEV_image
 from sterling.bev_costmap import BEVCostmap
-from tf2_ros import Buffer, TransformListener
 
 
 class LocalCostmapBuilder(Node):
@@ -37,15 +37,15 @@ class LocalCostmapBuilder(Node):
         self.base_link_offset_m = self.get_parameter("base_link_offset_m").value
 
         # Print parameter values
-        self.get_logger().info(f"Camera topic: {self.camera_topic}")
-        self.get_logger().info(f"Local costmap topic: {self.local_costmap_topic}")
-        self.get_logger().info(f"Terrain representation model: {terrain_representation_model}")
-        self.get_logger().info(f"KMeans model: {kmeans_model}")
-        self.get_logger().info(f"Terrain preferences: {terrain_preferences}")
-        self.get_logger().info(f"Homography matrix: \n{self.H}")
-        self.get_logger().info(f"Patch size (px): {self.patch_size_px}")
-        self.get_logger().info(f"Patch size (m): {self.patch_size_m}")
-        self.get_logger().info(f"Base link offset (m): {self.base_link_offset_m}")
+        self.get_logger().debug(f"Camera topic: {self.camera_topic}")
+        self.get_logger().debug(f"Local costmap topic: {self.local_costmap_topic}")
+        self.get_logger().debug(f"Terrain representation model: {terrain_representation_model}")
+        self.get_logger().debug(f"KMeans model: {kmeans_model}")
+        self.get_logger().debug(f"Terrain preferences: {terrain_preferences}")
+        self.get_logger().debug(f"Homography matrix: \n{self.H}")
+        self.get_logger().debug(f"Patch size (px): {self.patch_size_px}")
+        self.get_logger().debug(f"Patch size (m): {self.patch_size_m}")
+        self.get_logger().debug(f"Base link offset (m): {self.base_link_offset_m}")
 
         # Subscribers
         self.camera_subscriber = self.create_subscription(Image, self.camera_topic, self.camera_callback, 10)

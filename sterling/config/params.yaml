@@ -29,3 +29,4 @@ sterling:
     ros__parameters:
       local_costmap_topic: "/sterling/local_costmap"
       global_costmap_topic: "/global_costmap/costmap"
+      use_maximum: False

@@ -1,12 +1,12 @@
+import os
+from datetime import datetime
+
 import numpy as np
 import rclpy
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from std_srvs.srv import Trigger
-from datetime import datetime
-import os
-import tf2_ros
 
 # Define a QoS profile with Transient Local durability
 qos_profile = QoSProfile(
@@ -31,13 +31,16 @@ class GlobalCostmapBuilder(Node):
         # Declare and get parameters
         self.declare_parameter("local_costmap_topic", "/local_costmap/costmap")
         self.declare_parameter("global_costmap_topic", "/global_costmap/costmap")
+        self.declare_parameter("use_maximum", False)
 
         self.local_costmap_topic = self.get_parameter("local_costmap_topic").value
         self.global_costmap_topic = self.get_parameter("global_costmap_topic").value
+        self.use_maximum = self.get_parameter("use_maximum").value
 
         # Print parameter values
-        self.get_logger().info(f"Local costmap topic: {self.local_costmap_topic}")
-        self.get_logger().info(f"Global costmap topic: {self.global_costmap_topic}")
+        self.get_logger().debug(f"Local costmap topic: {self.local_costmap_topic}")
+        self.get_logger().debug(f"Global costmap topic: {self.global_costmap_topic}")
+        self.get_logger().debug(f"Use maximum: {self.use_maximum}")
 
         # Subscribe to the local costmap
         self.create_subscription(
@@ -64,10 +67,6 @@ class GlobalCostmapBuilder(Node):
 
         # Create a service to save the costmap
         self.service = self.create_service(Trigger, "save_costmap", self.save_costmap_callback)
-
-        # Initialize tf2 buffer and listener
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # Initialize stitched costmap
         self.stitched_costmap = None
@@ -98,48 +97,38 @@ class GlobalCostmapBuilder(Node):
             self.get_logger().warn("Stitched costmap not yet initialized.")
             return
 
-        try:
-            # Lookup the transform from base_link to map
-            transform = self.tf_buffer.lookup_transform("map", "base_link", rclpy.time.Time())
+        # Extract local costmap data
+        local_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
+        local_resolution = msg.info.resolution
+        local_origin_x = msg.info.origin.position.x
+        local_origin_y = msg.info.origin.position.y
 
-            # Extract the translation from the transform
-            translation = transform.transform.translation
+        # Transform local costmap data to stitched costmap frame
+        for y in range(msg.info.height):
+            for x in range(msg.info.width):
+                # Calculate stitched coordinates
+                stitched_x = int(
+                    (x * local_resolution + local_origin_x - self.stitched_origin_x) / self.stitched_resolution
+                )
+                stitched_y = int(
+                    (y * local_resolution + local_origin_y - self.stitched_origin_y) / self.stitched_resolution
+                )
 
-            # Extract local costmap data
-            local_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
-            local_resolution = msg.info.resolution
-            # local_origin_x = translation.x
-            # local_origin_y = translation.y
-            local_origin_x = msg.info.origin.position.x
-            local_origin_y = msg.info.origin.position.y
+                # Ensure stitched coordinates are within bounds
+                if 0 <= stitched_x < self.stitched_width and 0 <= stitched_y < self.stitched_height:
+                    # Update stitched costmap
+                    current_value = self.stitched_costmap[stitched_y, stitched_x]
+                    new_value = local_data[y, x]
 
-            # Transform local costmap data to stitched costmap frame
-            for y in range(msg.info.height):
-                for x in range(msg.info.width):
-                    # Calculate stitched coordinates
-                    stitched_x = int(
-                        (x * local_resolution + local_origin_x - self.stitched_origin_x) / self.stitched_resolution
-                    )
-                    stitched_y = int(
-                        (y * local_resolution + local_origin_y - self.stitched_origin_y) / self.stitched_resolution
-                    )
-
-                    # Ensure stitched coordinates are within bounds
-                    if 0 <= stitched_x < self.stitched_width and 0 <= stitched_y < self.stitched_height:
-                        # Update stitched costmap
-                        current_value = self.stitched_costmap[stitched_y, stitched_x]
-                        new_value = local_data[y, x]
+                    if self.use_maximum:
                         self.stitched_costmap[stitched_y, stitched_x] = max(current_value, new_value)
+                    else:
+                        self.stitched_costmap[stitched_y, stitched_x] = new_value
 
-            # Publish the updated global costmap
-            self.update_msg = self.global_msg
-            self.update_msg.data = self.stitched_costmap.flatten().tolist()
-            self.stitched_costmap_publisher.publish(self.update_msg)
-        
-        except tf2_ros.LookupException as e:
-            self.get_logger().warn(f"Transform lookup failed: {e}")
-        except tf2_ros.ExtrapolationException as e:
-            self.get_logger().warn(f"Transform extrapolation failed: {e}")
+        # Publish the updated global costmap
+        self.update_msg = self.global_msg
+        self.update_msg.data = self.stitched_costmap.flatten().tolist()
+        self.stitched_costmap_publisher.publish(self.update_msg)
 
     def resize_stitched_costmap(self):
         """Resize the stitched costmap to accommodate new data."""
