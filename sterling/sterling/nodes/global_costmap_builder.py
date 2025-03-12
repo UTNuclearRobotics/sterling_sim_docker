@@ -46,7 +46,7 @@ class GlobalCostmapBuilder(Node):
         self.create_subscription(
             OccupancyGrid,
             self.local_costmap_topic,
-            self.local_costmap_callback,
+            self.stitch_local_publish_global,
             10,
         )
 
@@ -81,6 +81,7 @@ class GlobalCostmapBuilder(Node):
         self.global_origin_x = msg.info.origin.position.x
         self.global_origin_y = msg.info.origin.position.y
 
+        # Initialize stitched costmap if not yet initialized
         if self.stitched_costmap is None:
             self.stitched_costmap = np.full((self.global_height, self.global_width), -1, dtype=int)
             self.stitched_resolution = self.global_resolution
@@ -88,11 +89,20 @@ class GlobalCostmapBuilder(Node):
             self.stitched_height = self.global_height
             self.stitched_origin_x = self.global_origin_x
             self.stitched_origin_y = self.global_origin_y
-        elif self.stitched_width != self.global_width or self.stitched_height != self.global_height:
+        # If origin or size of global costmap changes, resize stitched costmap
+        elif (
+            self.stitched_width != self.global_width
+            or self.stitched_height != self.global_height
+            or self.stitched_origin_x != self.global_origin_x
+            or self.stitched_origin_y != self.global_origin_y
+        ):
             self.resize_stitched_costmap()
 
-    def local_costmap_callback(self, msg):
-        """Callback for the local costmap."""
+    def stitch_local_publish_global(self, msg):
+        """
+        Callback for subscribing to the local costmap topic.
+        Stitches latest local costmap to the global costmap.
+        """
         if self.stitched_costmap is None:
             self.get_logger().warn("Stitched costmap not yet initialized.")
             return
@@ -123,7 +133,8 @@ class GlobalCostmapBuilder(Node):
                     if self.use_maximum:
                         self.stitched_costmap[stitched_y, stitched_x] = max(current_value, new_value)
                     else:
-                        self.stitched_costmap[stitched_y, stitched_x] = new_value
+                        if new_value > -1:
+                            self.stitched_costmap[stitched_y, stitched_x] = new_value
 
         # Publish the updated global costmap
         self.update_msg = self.global_msg
@@ -151,6 +162,8 @@ class GlobalCostmapBuilder(Node):
         # Update the stitched costmap properties
         self.stitched_width = self.global_width
         self.stitched_height = self.global_height
+        self.stitched_origin_x = self.global_origin_x
+        self.stitched_origin_y = self.global_origin_y
 
         # Update the stitched costmap
         self.stitched_costmap = new_stitched_costmap
