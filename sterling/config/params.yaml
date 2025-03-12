@@ -2,7 +2,6 @@ sterling:
   local_costmap_builder:
     ros__parameters:
       camera_topic: "/oakd2/oak_d_node/rgb/image_rect_color"
-      odometry_topic: "/odometry/filtered"
       local_costmap_topic: "/local_costmap/costmap"
       terrain_representation_model: "/root/ros2_ws/src/sterling/models/0228_sim_low_terrain_rep.pt"
       kmeans_model: "/root/ros2_ws/src/sterling/models/0228_sim_low_kmeans.pkl"

@@ -1,12 +1,13 @@
 import cv2
 import numpy as np
 import rclpy
-from nav_msgs.msg import OccupancyGrid, Odometry
+from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 
 from sterling.bev import get_BEV_image
 from sterling.bev_costmap import BEVCostmap
+from tf2_ros import Buffer, TransformListener
 
 
 class LocalCostmapBuilder(Node):
@@ -15,7 +16,6 @@ class LocalCostmapBuilder(Node):
 
         # Declare parameters with default values
         self.declare_parameter("camera_topic", "/oakd2/oak_d_node/rgb/image_rect_color")
-        self.declare_parameter("odometry_topic", "/odometry/filtered")
         self.declare_parameter("local_costmap_topic", "/local_costmap/costmap")
         self.declare_parameter("terrain_representation_model", "path/to/terrain_representation_model.pt")
         self.declare_parameter("kmeans_model", "/path/to/kmeans_model.pkl")
@@ -27,7 +27,6 @@ class LocalCostmapBuilder(Node):
 
         # Get parameter values
         self.camera_topic = self.get_parameter("camera_topic").value
-        self.odometry_topic = self.get_parameter("odometry_topic").value
         self.local_costmap_topic = self.get_parameter("local_costmap_topic").value
         terrain_representation_model = self.get_parameter("terrain_representation_model").value
         kmeans_model = self.get_parameter("kmeans_model").value
@@ -36,10 +35,9 @@ class LocalCostmapBuilder(Node):
         self.patch_size_px = self.get_parameter("patch_size_px").value
         self.patch_size_m = self.get_parameter("patch_size_m").value
         self.base_link_offset_m = self.get_parameter("base_link_offset_m").value
-        
+
         # Print parameter values
         self.get_logger().info(f"Camera topic: {self.camera_topic}")
-        self.get_logger().info(f"Odometry topic: {self.odometry_topic}")
         self.get_logger().info(f"Local costmap topic: {self.local_costmap_topic}")
         self.get_logger().info(f"Terrain representation model: {terrain_representation_model}")
         self.get_logger().info(f"KMeans model: {kmeans_model}")
@@ -51,7 +49,6 @@ class LocalCostmapBuilder(Node):
 
         # Subscribers
         self.camera_subscriber = self.create_subscription(Image, self.camera_topic, self.camera_callback, 10)
-        self.odometry_subscriber = self.create_subscription(Odometry, self.odometry_topic, self.odometry_callback, 10)
         self.costmap_subscriber = self.create_subscription(
             OccupancyGrid, self.local_costmap_topic, self.costmap_callback, 10
         )
@@ -62,6 +59,10 @@ class LocalCostmapBuilder(Node):
         # Timers
         self.timer = self.create_timer(1.0, self.update_costmap)
 
+        # Initialize tf buffer and listener
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
         self.get_terrain_preferred_costmap = BEVCostmap(
             terrain_representation_model, kmeans_model, terrain_preferences
         ).BEV_to_costmap
@@ -70,14 +71,10 @@ class LocalCostmapBuilder(Node):
 
         # Buffers to store and fetch latest message
         self.camera_msg = None
-        self.odometry_msg = None
         self.occupany_grid_msg = None
 
     def camera_callback(self, msg):
         self.camera_msg = msg
-
-    def odometry_callback(self, msg):
-        self.odometry_msg = msg
 
     def costmap_callback(self, msg):
         if self.LocalCostmapHelper is None:
@@ -88,7 +85,7 @@ class LocalCostmapBuilder(Node):
         """
         Use the rolling window of the local costmap to stitch the terrain preferred local costmap.
         """
-        if not self.camera_msg or not self.odometry_msg or not self.occupany_grid_msg:
+        if not self.camera_msg or not self.occupany_grid_msg:
             return
 
         # Get BEV image
@@ -110,10 +107,17 @@ class LocalCostmapBuilder(Node):
             0, -self.base_link_offset_m, self.patch_size_m, terrain_costmap
         )
 
+        # Lookup transform from base_link to get orientation
+        try:
+            transform = self.tf_buffer.lookup_transform("base_link", "map", rclpy.time.Time())
+            yaw_angle = LocalCostmapHelper.quarternion_to_euler(transform.transform.rotation)
+            # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
+        except Exception as e:
+            self.get_logger().error(f"Transform lookup failed: {e}")
+            return
+
         # Rotate the costmap by the yaw angle
-        yaw_angle = LocalCostmapHelper.quarternion_to_euler(self.odometry_msg.pose.pose.orientation)
-        # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
-        rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, -np.degrees(yaw_angle) - 90)
+        rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, np.degrees(yaw_angle) - 90)
         rotated_data = np.array(rotated_data).flatten()
 
         # Keep the highest cost when stitching the local costmap

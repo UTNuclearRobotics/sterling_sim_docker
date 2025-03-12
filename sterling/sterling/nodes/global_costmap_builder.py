@@ -6,6 +6,7 @@ from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReli
 from std_srvs.srv import Trigger
 from datetime import datetime
 import os
+import tf2_ros
 
 # Define a QoS profile with Transient Local durability
 qos_profile = QoSProfile(
@@ -64,6 +65,10 @@ class GlobalCostmapBuilder(Node):
         # Create a service to save the costmap
         self.service = self.create_service(Trigger, "save_costmap", self.save_costmap_callback)
 
+        # Initialize tf2 buffer and listener
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
         # Initialize stitched costmap
         self.stitched_costmap = None
         self.update_msg = None
@@ -93,34 +98,48 @@ class GlobalCostmapBuilder(Node):
             self.get_logger().warn("Stitched costmap not yet initialized.")
             return
 
-        # Extract local costmap data
-        local_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
-        local_resolution = msg.info.resolution
-        local_origin_x = msg.info.origin.position.x
-        local_origin_y = msg.info.origin.position.y
+        try:
+            # Lookup the transform from base_link to map
+            transform = self.tf_buffer.lookup_transform("map", "base_link", rclpy.time.Time())
 
-        # Transform local costmap data to stitched costmap frame
-        for y in range(msg.info.height):
-            for x in range(msg.info.width):
-                # Calculate stitched coordinates
-                stitched_x = int(
-                    (x * local_resolution + local_origin_x - self.stitched_origin_x) / self.stitched_resolution
-                )
-                stitched_y = int(
-                    (y * local_resolution + local_origin_y - self.stitched_origin_y) / self.stitched_resolution
-                )
+            # Extract the translation from the transform
+            translation = transform.transform.translation
 
-                # Ensure stitched coordinates are within bounds
-                if 0 <= stitched_x < self.stitched_width and 0 <= stitched_y < self.stitched_height:
-                    # Update stitched costmap
-                    current_value = self.stitched_costmap[stitched_y, stitched_x]
-                    new_value = local_data[y, x]
-                    self.stitched_costmap[stitched_y, stitched_x] = max(current_value, new_value)
+            # Extract local costmap data
+            local_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
+            local_resolution = msg.info.resolution
+            # local_origin_x = translation.x
+            # local_origin_y = translation.y
+            local_origin_x = msg.info.origin.position.x
+            local_origin_y = msg.info.origin.position.y
 
-        # Publish the updated global costmap
-        self.update_msg = self.global_msg
-        self.update_msg.data = self.stitched_costmap.flatten().tolist()
-        self.stitched_costmap_publisher.publish(self.update_msg)
+            # Transform local costmap data to stitched costmap frame
+            for y in range(msg.info.height):
+                for x in range(msg.info.width):
+                    # Calculate stitched coordinates
+                    stitched_x = int(
+                        (x * local_resolution + local_origin_x - self.stitched_origin_x) / self.stitched_resolution
+                    )
+                    stitched_y = int(
+                        (y * local_resolution + local_origin_y - self.stitched_origin_y) / self.stitched_resolution
+                    )
+
+                    # Ensure stitched coordinates are within bounds
+                    if 0 <= stitched_x < self.stitched_width and 0 <= stitched_y < self.stitched_height:
+                        # Update stitched costmap
+                        current_value = self.stitched_costmap[stitched_y, stitched_x]
+                        new_value = local_data[y, x]
+                        self.stitched_costmap[stitched_y, stitched_x] = max(current_value, new_value)
+
+            # Publish the updated global costmap
+            self.update_msg = self.global_msg
+            self.update_msg.data = self.stitched_costmap.flatten().tolist()
+            self.stitched_costmap_publisher.publish(self.update_msg)
+        
+        except tf2_ros.LookupException as e:
+            self.get_logger().warn(f"Transform lookup failed: {e}")
+        except tf2_ros.ExtrapolationException as e:
+            self.get_logger().warn(f"Transform extrapolation failed: {e}")
 
     def resize_stitched_costmap(self):
         """Resize the stitched costmap to accommodate new data."""
