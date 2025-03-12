@@ -3,6 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import rclpy
+import yaml
 from nav_msgs.msg import OccupancyGrid
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
@@ -89,6 +90,7 @@ class GlobalCostmapBuilder(Node):
             self.stitched_height = self.global_height
             self.stitched_origin_x = self.global_origin_x
             self.stitched_origin_y = self.global_origin_y
+            self.get_logger().info("Global costmap initialized.")
         # If origin or size of global costmap changes, resize stitched costmap
         elif (
             self.stitched_width != self.global_width
@@ -207,7 +209,7 @@ class GlobalCostmapBuilder(Node):
 
         # Convert cost values to PGM format (0-255)
         data = np.clip(data, 0, 100)  # Clip values to 0-100 (Nav2 costmap range)
-        data = (data * 2.55).astype(np.uint8)  # Scale to 0-255
+        # data = (data * 2.55).astype(np.uint8)  # Scale to 0-255
 
         # Write the PGM file
         with open(filename, "wb") as pgm_file:
@@ -228,7 +230,7 @@ class GlobalCostmapBuilder(Node):
             "free_thresh": 0.196,
         }
         with open(filename, "w") as yaml_file:
-            yaml_file.write(yaml_content)
+            yaml.dump(yaml_content, yaml_file, default_flow_style=False)
 
 
 def main(args=None):
