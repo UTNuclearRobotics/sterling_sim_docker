@@ -78,7 +78,7 @@ RUN git clone git@github.com:UTNuclearRobotics/panther_ros.git \
 # Sterling Gazebo
 RUN git clone git@github.com:UTNuclearRobotics/sterling_gazebo.git \
     && cd sterling_gazebo \
-    && git checkout 1b9d198404bd79c914dfb3d7d5c50c560c227c8a
+    && git checkout ec7141214fef1bbd32800086ce4c3fc1ea8bb330
 # NAV2 Docker
 RUN git clone git@github.com:UTNuclearRobotics/nav2-docker.git \
     && cd nav2-docker \
@@ -87,6 +87,9 @@ RUN git clone git@github.com:UTNuclearRobotics/nav2-docker.git \
 RUN git clone git@github.com:UTNuclearRobotics/ros_components_description.git \
     && cd ros_components_description \
     && git checkout a31f6f6fe1f5f3530a79b219f967911e2cef6a78
+
+# Remove the private SSH key after cloning the repositories
+RUN rm /root/.ssh/id_rsa
 
 # Install deps
 WORKDIR /root/dependency_ws
