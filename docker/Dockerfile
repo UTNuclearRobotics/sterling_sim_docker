@@ -91,31 +91,6 @@ RUN git clone git@github.com:UTNuclearRobotics/ros_components_description.git \
 # Remove the private SSH key after cloning the repositories
 RUN rm /root/.ssh/id_rsa
 
-# Install deps
-WORKDIR /root/dependency_ws
-RUN rosdep update
-RUN rosdep install --from-paths src --ignore-src -r -y
-# TODO: the --continue-on-error should not be needed.
-RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --continue-on-error
-
-# Remove unnecessary files
-RUN rm -rf src build logs
-
-RUN apt update && apt install -y \
-    ros-${ROS_DISTRO}-cyclonedds \
-    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp
-
-# setup .bashrc
-SHELL ["/bin/bash", "-l", "-c"]
-RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
-    && echo "source /root/dependency_ws/install/setup.bash" >> ~/.bashrc \
-    && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.profile \
-    && echo "source /root/dependency_ws/install/setup.bash" >> ~/.profile \
-    && source ~/.bashrc
-
-COPY alias.sh /root/alias.sh
-RUN echo "source /root/alias.sh" >> ~/.bashrc
-
 # Sterling dependencies
 RUN pip install \
     opencv-python \
@@ -127,8 +102,26 @@ RUN pip install \
     tensorflow \
     torchvision
 
-# copy the cyclonedds config file
-COPY cyclonedds.xml /root/cyclonedds.xml
+# Install deps
+WORKDIR /root/dependency_ws
+RUN rosdep update
+RUN rosdep install --from-paths src --ignore-src -r -y
+# TODO: the --continue-on-error should not be needed.
+RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --continue-on-error
+
+# Remove unnecessary files
+RUN rm -rf src build logs
+
+# setup .bashrc
+SHELL ["/bin/bash", "-l", "-c"]
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc \
+    && echo "source /root/dependency_ws/install/setup.bash" >> ~/.bashrc \
+    && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.profile \
+    && echo "source /root/dependency_ws/install/setup.bash" >> ~/.profile \
+    && source ~/.bashrc
+
+COPY alias.sh /root/alias.sh
+RUN echo "source /root/alias.sh" >> ~/.bashrc
 
 # copy the entrypoint into the image
 COPY docker/entrypoint.sh /usr/bin/entrypoint.sh
