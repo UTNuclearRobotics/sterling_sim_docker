@@ -58,12 +58,12 @@ class BEVCostmap:
             phi_vis, _, uvis_pred, _, final_cost = self.model(cells, inertial=None)
 
             uvis_costs = uvis_pred.squeeze(-1).cpu().numpy().astype(np.uint8)
-            final_costs = (final_cost.squeeze(-1).cpu().numpy()).astype(np.uint8)
-            # # Ensure final_costs values are within the expected range [0, 100].
-            # if np.any(final_costs < 0) or np.any(final_costs > 100):
-            #     print(f"final_costs shape: {final_costs.shape}")
-            #     print(f"final_costs: {final_costs}")
-            #     raise ValueError(final_costs)
+            final_costs = (final_cost.squeeze(-1).cpu().numpy() * 100.0 / 255.0 ).astype(np.uint8)
+            
+            # TODO: Some values are out of range [0, 100]
+            # Make sure the costs never return an obstacle (value of 100)
+            final_costs = np.clip(final_costs, -1, 99)
+
             return uvis_costs, final_costs
 
     def BEV_to_costmap(self, bev_img, cell_size):

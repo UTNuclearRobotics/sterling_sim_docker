@@ -107,9 +107,6 @@ class LocalCostmapBuilder(Node):
         # Get terrain preferred costmap
         terrain_costmap = self.get_terrain_preferred_costmap(bev_image, self.patch_size_px)
         # self.get_logger().info(f"Costmap:\n{terrain_costmap}")
-        
-        if np.any(terrain_costmap < 0) or np.any(terrain_costmap > 100):
-            self.get_logger().info(f"terrain_costmap: {terrain_costmap}")
 
         # TODO: Bug that the costmap is flipped horizontally
         terrain_costmap = np.fliplr(terrain_costmap)
