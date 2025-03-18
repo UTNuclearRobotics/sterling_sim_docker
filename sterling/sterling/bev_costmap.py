@@ -1,60 +1,70 @@
 import os
 
-import joblib
 import numpy as np
 import torch
-from sklearn.preprocessing import normalize
 
-from sterling.train_representation import SterlingPaternRepresentation
+from sterling.train_patern import PaternPreAdaptation
 
 
 class BEVCostmap:
     """
-    An overview of the cost inference process for local planning at deployment.
+    An overview of the cost inference process for local planning at deployment using trained preference predictor.
     """
 
-    def __init__(self, viz_encoder_path, kmeans_path, preferences):
+    def __init__(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load visual encoder model weights
-        self.sterling = SterlingPaternRepresentation(self.device).to(self.device)
-        if not os.path.exists(viz_encoder_path):
-            raise FileNotFoundError(f"Model file not found at: {viz_encoder_path}")
-        self.sterling.load_state_dict(
-            torch.load(viz_encoder_path, weights_only=True, map_location=torch.device(self.device))
-        )
+        self.model = PaternPreAdaptation(self.device).to(self.device)
 
-        # Load K-means model
-        if not os.path.exists(kmeans_path):
-            raise FileNotFoundError(f"K-means model not found at {kmeans_path}")
-        self.kmeans = joblib.load(kmeans_path)
+        # Define the expected .pt files for each submodule
+        weight_files = {
+            "visual_encoder": "fvis.pt",
+            "proprioceptive_encoder": "fpro.pt",
+            "uvis": "uvis.pt",
+            "upro": "upro.pt",
+            "cost_head": "cost_head.pt"
+        }
 
-        self.preferences = preferences
+        # Load weights for each submodule
+        for submodule_name, file_name in weight_files.items():
+            file_path = os.path.join(model_path, file_name)
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"Weight file for {submodule_name} not found at: {file_path}")
+            
+            # Load the state dict for the submodule
+            state_dict = torch.load(file_path, weights_only=True, map_location=self.device)
+            
+            # Get the corresponding submodule from self.model
+            submodule = getattr(self.model, submodule_name)
+            submodule.load_state_dict(state_dict)
+            print(f"Loaded {submodule_name} weights from {file_path}")
 
-    def predict_clusters(self, cells):
-        """Predict clusters for a batch of cells."""
+        # Set the model to evaluation mode
+        self.model.eval()
+
+    def predict_preferences(self, cells):
+        """Predict preferences for a batch of cells using the trained uvis model."""
         if isinstance(cells, np.ndarray):
             cells = torch.tensor(cells, dtype=torch.float32, device=self.device)
 
         if len(cells.shape) == 4:  # [B, C, H, W]
-            pass
+            pass  
         elif len(cells.shape) == 3:  # [C, H, W] -> [1, C, H, W]
             cells = cells.unsqueeze(0)
-
-        self.sterling.eval()
+        
         with torch.no_grad():
-            representation_vectors = self.sterling.visual_encoder(cells)
-            # Ensure representation_vectors is on CPU
-            representations_np = representation_vectors.cpu().numpy()
-            representations_np = normalize(representations_np, axis=1, norm="l2")
+            # Pass None for inertial data
+            phi_vis, _, uvis_pred, _, final_cost = self.model(cells, inertial=None)
 
-        return self.kmeans.predict(representations_np)
-
-    def calculate_cell_costs(self, cells):
-        """Batch process cell costs."""
-        cluster_labels = self.predict_clusters(cells)
-        costs = [self.preferences[label] for label in cluster_labels]
-        return costs
+            uvis_costs = uvis_pred.squeeze(-1).cpu().numpy().astype(np.uint8)
+            final_costs = (final_cost.squeeze(-1).cpu().numpy()).astype(np.uint8)
+            # # Ensure final_costs values are within the expected range [0, 100].
+            # if np.any(final_costs < 0) or np.any(final_costs > 100):
+            #     print(f"final_costs shape: {final_costs.shape}")
+            #     print(f"final_costs: {final_costs}")
+            #     raise ValueError(final_costs)
+            return uvis_costs, final_costs
 
     def BEV_to_costmap(self, bev_img, cell_size):
         """Convert BEV image to costmap while automatically marking consistent black areas."""
@@ -96,12 +106,16 @@ class BEVCostmap:
 
         # Calculate costs for valid cells in a single batch.
         if valid_cells.size:
-            costs = self.calculate_cell_costs(valid_cells)
+            # Ensure valid_cells has shape [B, C, H, W]
+            if len(valid_cells.shape) == 5 and valid_cells.shape[2] == 1:  # Grayscale
+                valid_cells = valid_cells.squeeze(2)  # [B, H, W]
+                valid_cells = np.stack([valid_cells] * 3, axis=1)  # [B, 3, H, W]
+            uvis_cost, final_cost = self.predict_preferences(valid_cells)
         else:
-            costs = np.empty((0,), dtype=np.uint8)
+            uvis_cost, final_cost = np.empty((0,), dtype=np.uint8)
 
         # Assemble costmap: assign maximum cost (-1) to unknown cells and computed costs to others.
         costmap[black_cells] = -1
-        costmap[~black_cells] = costs
+        costmap[~black_cells] = final_cost
 
         return costmap

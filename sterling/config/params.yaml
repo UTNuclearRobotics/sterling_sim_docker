@@ -3,15 +3,7 @@ sterling:
     ros__parameters:
       camera_topic: "/oakd2/oak_d_node/rgb/image_rect_color"
       local_costmap_topic: "/local_costmap/costmap"
-      terrain_representation_model: "/root/ros2_ws/src/sterling/models/0228_sim_low_terrain_rep.pt"
-      kmeans_model: "/root/ros2_ws/src/sterling/models/0228_sim_low_kmeans.pkl"
-      terrain_preferences:
-        [80, 0, 80, 50, 80]
-        # Cluster 0: Grass
-        # Cluster 1: Pavement
-        # Cluster 2: Red
-        # Cluster 3: Grass and pavement
-        # Cluster 4: Grass and red
+      model_path: "/root/ros2_ws/src/sterling/models/patern"
       homography_matrix:
         [
           1.2549033893146113,

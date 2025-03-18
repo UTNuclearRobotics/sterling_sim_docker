@@ -17,9 +17,7 @@ class LocalCostmapBuilder(Node):
         # Declare parameters with default values
         self.declare_parameter("camera_topic", "/oakd2/oak_d_node/rgb/image_rect_color")
         self.declare_parameter("local_costmap_topic", "/local_costmap/costmap")
-        self.declare_parameter("terrain_representation_model", "path/to/terrain_representation_model.pt")
-        self.declare_parameter("kmeans_model", "/path/to/kmeans_model.pkl")
-        self.declare_parameter("terrain_preferences", [0])
+        self.declare_parameter("model_path", "path/to/terrain_representation_model.pt")
         self.declare_parameter("homography_matrix", [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
         self.declare_parameter("patch_size_px", 128)
         self.declare_parameter("patch_size_m", 0.23)
@@ -28,9 +26,7 @@ class LocalCostmapBuilder(Node):
         # Get parameter values
         self.camera_topic = self.get_parameter("camera_topic").value
         self.local_costmap_topic = self.get_parameter("local_costmap_topic").value
-        terrain_representation_model = self.get_parameter("terrain_representation_model").value
-        kmeans_model = self.get_parameter("kmeans_model").value
-        terrain_preferences = self.get_parameter("terrain_preferences").value
+        model_path = self.get_parameter("model_path").value
         self.H = np.array(self.get_parameter("homography_matrix").value).reshape(3, 3)
         self.patch_size_px = self.get_parameter("patch_size_px").value
         self.patch_size_m = self.get_parameter("patch_size_m").value
@@ -39,9 +35,7 @@ class LocalCostmapBuilder(Node):
         # Print parameter values
         self.get_logger().debug(f"Camera topic: {self.camera_topic}")
         self.get_logger().debug(f"Local costmap topic: {self.local_costmap_topic}")
-        self.get_logger().debug(f"Terrain representation model: {terrain_representation_model}")
-        self.get_logger().debug(f"KMeans model: {kmeans_model}")
-        self.get_logger().debug(f"Terrain preferences: {terrain_preferences}")
+        self.get_logger().debug(f"Model path: {model_path}")
         self.get_logger().debug(f"Homography matrix: \n{self.H}")
         self.get_logger().debug(f"Patch size (px): {self.patch_size_px}")
         self.get_logger().debug(f"Patch size (m): {self.patch_size_m}")
@@ -63,9 +57,7 @@ class LocalCostmapBuilder(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self.get_terrain_preferred_costmap = BEVCostmap(
-            terrain_representation_model, kmeans_model, terrain_preferences
-        ).BEV_to_costmap
+        self.get_terrain_preferred_costmap = BEVCostmap(model_path).BEV_to_costmap
 
         self.LocalCostmapHelper = None
 
@@ -76,7 +68,7 @@ class LocalCostmapBuilder(Node):
 
     def camera_callback(self, msg):
         self.camera_msg = msg
-        
+
         # Lookup transform from base_link to get orientation
         try:
             transform = self.tf_buffer.lookup_transform("base_link", "map", rclpy.time.Time())
@@ -97,11 +89,11 @@ class LocalCostmapBuilder(Node):
         """
         if not self.camera_msg or not self.yaw_angle or not self.occupany_grid_msg:
             if self.camera_msg is None:
-                self.get_logger().info("Camera message is None")
+                self.get_logger().debug("Camera message is None")
             if self.yaw_angle is None:
-                self.get_logger().info("Yaw angle is None")
+                self.get_logger().debug("Yaw angle is None")
             if self.occupany_grid_msg is None:
-                self.get_logger().info("Occupancy grid message is None")
+                self.get_logger().debug("Occupancy grid message is None")
             self.get_logger().info("Waiting for camera and occupancy grid message...")
             return
 
@@ -115,6 +107,9 @@ class LocalCostmapBuilder(Node):
         # Get terrain preferred costmap
         terrain_costmap = self.get_terrain_preferred_costmap(bev_image, self.patch_size_px)
         # self.get_logger().info(f"Costmap:\n{terrain_costmap}")
+        
+        if np.any(terrain_costmap < 0) or np.any(terrain_costmap > 100):
+            self.get_logger().info(f"terrain_costmap: {terrain_costmap}")
 
         # TODO: Bug that the costmap is flipped horizontally
         terrain_costmap = np.fliplr(terrain_costmap)
@@ -135,7 +130,7 @@ class LocalCostmapBuilder(Node):
 
         # Publish message
         self.sterling_costmap_publisher.publish(msg)
-        
+
         # Reset the buffers
         # self.camera_msg = None
         # self.yaw_angle = None
