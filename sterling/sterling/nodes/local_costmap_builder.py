@@ -71,10 +71,20 @@ class LocalCostmapBuilder(Node):
 
         # Buffers to store and fetch latest message
         self.camera_msg = None
+        self.yaw_angle = None
         self.occupany_grid_msg = None
 
     def camera_callback(self, msg):
         self.camera_msg = msg
+        
+        # Lookup transform from base_link to get orientation
+        try:
+            transform = self.tf_buffer.lookup_transform("base_link", "map", rclpy.time.Time())
+            self.yaw_angle = LocalCostmapHelper.quarternion_to_euler(transform.transform.rotation)
+            # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
+        except Exception as e:
+            self.get_logger().error(f"Transform lookup failed: {e}")
+            return
 
     def costmap_callback(self, msg):
         if self.LocalCostmapHelper is None:
@@ -85,7 +95,14 @@ class LocalCostmapBuilder(Node):
         """
         Use the rolling window of the local costmap to stitch the terrain preferred local costmap.
         """
-        if not self.camera_msg or not self.occupany_grid_msg:
+        if not self.camera_msg or not self.yaw_angle or not self.occupany_grid_msg:
+            if self.camera_msg is None:
+                self.get_logger().info("Camera message is None")
+            if self.yaw_angle is None:
+                self.get_logger().info("Yaw angle is None")
+            if self.occupany_grid_msg is None:
+                self.get_logger().info("Occupancy grid message is None")
+            self.get_logger().info("Waiting for camera and occupancy grid message...")
             return
 
         # Get BEV image
@@ -107,17 +124,8 @@ class LocalCostmapBuilder(Node):
             0, -self.base_link_offset_m, self.patch_size_m, terrain_costmap
         )
 
-        # Lookup transform from base_link to get orientation
-        try:
-            transform = self.tf_buffer.lookup_transform("base_link", "map", rclpy.time.Time())
-            yaw_angle = LocalCostmapHelper.quarternion_to_euler(transform.transform.rotation)
-            # self.get_logger().info(f"Yaw angle: {np.degrees(yaw_angle)}")
-        except Exception as e:
-            self.get_logger().error(f"Transform lookup failed: {e}")
-            return
-
         # Rotate the costmap by the yaw angle
-        rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, np.degrees(yaw_angle) - 90)
+        rotated_data = LocalCostmapHelper.rotate_costmap(data_2d, np.degrees(self.yaw_angle) - 90)
         rotated_data = np.array(rotated_data).flatten()
 
         # Keep the highest cost when stitching the local costmap
@@ -127,6 +135,11 @@ class LocalCostmapBuilder(Node):
 
         # Publish message
         self.sterling_costmap_publisher.publish(msg)
+        
+        # Reset the buffers
+        # self.camera_msg = None
+        # self.yaw_angle = None
+        # self.occupany_grid_msg = None
 
 
 class LocalCostmapHelper:

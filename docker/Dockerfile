@@ -111,7 +111,20 @@ RUN git clone git@github.com:UTNuclearRobotics/sterling_gazebo.git \
 RUN git clone git@github.com:UTNuclearRobotics/utexas_panther_accessories.git \
     && cd utexas_panther_accessories \
     && git checkout 424e22e076f77b68cc5eeb0fd885f81dc7fab959
+
+# Remove the private SSH key after cloning the repositories
 RUN rm /root/.ssh/id_ed25519
+
+# Sterling dependencies
+RUN pip install \
+    opencv-python \
+    numpy \
+    joblib \
+    scikit-learn \
+    torch \
+    pyyaml \
+    tensorflow \
+    torchvision
 
 # Install deps
 WORKDIR /root/dependency_ws
